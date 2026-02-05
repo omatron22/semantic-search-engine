@@ -1,0 +1,1 @@
+Tauri framework allows building desktop applications using web technologies
