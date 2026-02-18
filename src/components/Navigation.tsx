@@ -14,11 +14,17 @@ export function Navigation() {
           >
             Index
           </Link>
-          <Link 
-            to="/search" 
+          <Link
+            to="/search"
             className={`nav-link ${location.pathname === '/search' ? 'active' : ''}`}
           >
             Search
+          </Link>
+          <Link
+            to="/connectors"
+            className={`nav-link ${location.pathname === '/connectors' ? 'active' : ''}`}
+          >
+            Connectors
           </Link>
         </div>
       </div>

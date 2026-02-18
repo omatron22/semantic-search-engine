@@ -1,0 +1,112 @@
+==========================================
+  COFFEE — VISION
+==========================================
+
+------------------------------------------
+  WHAT IT IS
+------------------------------------------
+
+  A web application that lets companies search across ALL their
+  information — local files, emails, cloud storage, chat history —
+  using natural language, with everything stored on the server.
+
+  No data leaves the machine. No cloud APIs for search. No SaaS fees.
+  The AI model runs locally via SentenceTransformer embeddings.
+
+------------------------------------------
+  CORE VALUE PROPOSITION
+------------------------------------------
+
+  1. UNIFIED SEARCH
+     One search bar across files, emails, and future data sources.
+     "Find the budget email from January" works whether it's a
+     PDF on disk or an email in Gmail.
+
+  2. PRIVACY-FIRST
+     All data stays local. Embeddings are generated on-device.
+     No content is sent to external APIs. Companies with
+     sensitive data (legal, medical, financial) can adopt this
+     without compliance concerns.
+
+  3. ZERO ONGOING COST
+     No per-seat SaaS fees. No API usage charges. Once deployed,
+     it runs forever on local hardware.
+
+  4. PLUGGABLE CONNECTORS
+     Gmail today. Outlook, Google Drive, Slack, Notion tomorrow.
+     The connector framework makes adding new sources straightforward:
+     download data → save as .txt → existing pipeline indexes it.
+
+------------------------------------------
+  TARGET CUSTOMERS
+------------------------------------------
+
+  - Small/mid companies (10-200 people) drowning in scattered info
+  - Legal firms that can't use cloud search (confidentiality)
+  - Healthcare orgs with HIPAA constraints
+  - Engineering teams wanting to search code + docs + emails together
+  - Anyone frustrated with enterprise search tools that don't work
+
+------------------------------------------
+  ARCHITECTURE ADVANTAGE
+------------------------------------------
+
+  The key insight: connectors are just downloaders.
+
+  They pull data from external sources and save it as local .txt
+  files. The existing indexing pipeline (chunking → embedding →
+  LanceDB vector store) processes them unchanged.
+
+  This means:
+  - Adding a new connector doesn't touch the search engine
+  - Search quality improvements benefit ALL data sources
+  - The system stays simple and testable
+
+------------------------------------------
+  ROADMAP
+------------------------------------------
+
+  PHASE 1 (Current): Local files + Gmail connector
+  - Folder indexing with 15+ file type support
+  - Gmail/IMAP email sync with incremental updates
+  - Background sync engine with scheduling
+  - Hybrid search (vector + BM25 + reranking)
+
+  PHASE 2: More connectors
+  - Google Drive / OneDrive (download docs locally)
+  - Outlook (IMAP or EWS)
+  - Slack (export channel history)
+
+  PHASE 3: Team features
+  - Multi-user support (shared indexes, personal connectors)
+  - Admin dashboard for managing company connectors
+  - SSO integration
+
+  PHASE 4: Intelligence
+  - Auto-summarization of search results
+  - "Related documents" suggestions
+  - Smart alerts ("notify me when something about X arrives")
+
+------------------------------------------
+  COMPETITIVE LANDSCAPE
+------------------------------------------
+
+  Glean, Coveo, Elastic Workplace Search — all cloud-based,
+  expensive ($10-30/user/month), require sending data to their
+  servers.
+
+  This project offers the same capability with:
+  - $0 ongoing cost
+  - Complete data privacy
+  - Desktop-native performance
+  - No vendor lock-in
+
+------------------------------------------
+  TECHNICAL STACK
+------------------------------------------
+
+  Frontend: React SPA (Vite + Express)
+  Backend:  FastAPI (Python) + Express (Node.js)
+  Search:   SentenceTransformer embeddings + LanceDB vector DB
+  Optional: Ollama for local LLM query expansion
+  New:      Connector framework + sync engine (stdlib IMAP)

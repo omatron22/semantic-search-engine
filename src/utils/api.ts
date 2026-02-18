@@ -18,6 +18,23 @@ export interface SearchResult {
   word_count?: number;
 }
 
+export interface ConnectorStatus {
+  connector_id: string;
+  connector_type: string;
+  label: string;
+  status: string;
+  last_sync: string | null;
+  last_error: string | null;
+  items_synced: number;
+}
+
+export interface AddConnectorParams {
+  type: string;
+  credentials: Record<string, string>;
+  label?: string;
+  sync_interval?: number;
+}
+
 export const api = {
   // Health check
   async health(): Promise<{ status: string; message: string }> {
@@ -47,5 +64,39 @@ export const api = {
     });
     const data = await response.json();
     return data.results;
-  }
+  },
+
+  // Connectors
+  async listConnectors(): Promise<ConnectorStatus[]> {
+    const response = await fetch(`${API_BASE}/api/connectors`);
+    const data = await response.json();
+    return data.connectors || [];
+  },
+
+  async getConnectorTypes(): Promise<string[]> {
+    const response = await fetch(`${API_BASE}/api/connectors/types`);
+    const data = await response.json();
+    return data.types || [];
+  },
+
+  async addConnector(params: AddConnectorParams): Promise<{ success: boolean; connector?: ConnectorStatus; error?: string }> {
+    const response = await fetch(`${API_BASE}/api/connectors`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+    return response.json();
+  },
+
+  async deleteConnector(connectorId: string): Promise<{ success: boolean }> {
+    const response = await fetch(`${API_BASE}/api/connectors/${connectorId}`, {
+      method: "DELETE",
+    });
+    return response.json();
+  },
+
+  async getConnectorStatus(connectorId: string): Promise<ConnectorStatus> {
+    const response = await fetch(`${API_BASE}/api/connectors/${connectorId}/status`);
+    return response.json();
+  },
 };

@@ -2,10 +2,12 @@ import lancedb
 from sentence_transformers import SentenceTransformer
 import os
 from index_metadata import get_file_hash
+from chunker import chunk_text
+from config import get_embedding_model, get_table_name
 
 # Initialize
-DB_PATH = "../storage/vector_db"
-model = SentenceTransformer('all-MiniLM-L6-v2')
+DB_PATH = os.path.join(os.path.dirname(__file__), "..", "storage", "vector_db")
+model = SentenceTransformer(get_embedding_model())
 
 def init_db():
     """Initialize LanceDB"""
@@ -14,41 +16,61 @@ def init_db():
     return db
 
 def store_document(file_path, text, metadata=None):
-    """Store a document's embedding with metadata tracking"""
+    """Store a document's chunks as separate embeddings with full text."""
     db = init_db()
-    
-    # Generate embedding
-    embedding = model.encode(text).tolist()
-    
+    table_name = get_table_name()
+
+    # Delete existing rows for this file (clean re-index)
+    try:
+        table = db.open_table(table_name)
+        escaped = file_path.replace("'", "''")
+        table.delete(f"file_path = '{escaped}'")
+    except:
+        pass
+
+    # Chunk the text
+    chunks = chunk_text(text)
+    if not chunks:
+        return 0
+
+    # Batch-embed all chunks at once
+    chunk_texts = [c["text"] for c in chunks]
+    embeddings = model.encode(chunk_texts)
+
     # Get file hash for tracking
     file_hash = get_file_hash(file_path)
-    
-    # Prepare data
-    data = [{
-        "vector": embedding,
-        "text": text[:500],  # Store first 500 chars
-        "file_path": file_path,
-        "file_hash": file_hash,
-        "metadata": str(metadata or {})
-    }]
-    
+
+    # Prepare rows — one per chunk, full text stored
+    data = []
+    for i, chunk in enumerate(chunks):
+        data.append({
+            "vector": embeddings[i].tolist(),
+            "text": chunk["text"],
+            "file_path": file_path,
+            "file_hash": file_hash,
+            "chunk_index": chunk["chunk_index"],
+            "total_chunks": chunk["total_chunks"],
+            "metadata": str(metadata or {})
+        })
+
     # Create or append to table
     try:
-        table = db.open_table("documents")
+        table = db.open_table(table_name)
         table.add(data)
     except:
-        table = db.create_table("documents", data)
-    
-    return True
+        table = db.create_table(table_name, data)
+
+    return len(chunks)
 
 def delete_document(file_path):
     """Delete a document from the index"""
     db = init_db()
-    
+    table_name = get_table_name()
+
     try:
-        table = db.open_table("documents")
-        # LanceDB delete by filter
-        table.delete(f"file_path = '{file_path}'")
+        table = db.open_table(table_name)
+        escaped = file_path.replace("'", "''")
+        table.delete(f"file_path = '{escaped}'")
         return True
     except Exception as e:
         print(f"Error deleting document: {e}")
@@ -57,51 +79,25 @@ def delete_document(file_path):
 def search_documents(query, limit=10):
     """Search for similar documents"""
     db = init_db()
-    
+    table_name = get_table_name()
+
     # Generate query embedding
     query_vector = model.encode(query).tolist()
-    
+
     # Search
     try:
-        table = db.open_table("documents")
+        table = db.open_table(table_name)
         results = table.search(query_vector).limit(limit).to_list()
         return results
     except:
         return []
 
 def get_indexed_count():
-    """Get total number of indexed documents"""
+    """Get total number of indexed chunks"""
     db = init_db()
+    table_name = get_table_name()
     try:
-        table = db.open_table("documents")
+        table = db.open_table(table_name)
         return table.count_rows()
     except:
         return 0
-
-if __name__ == "__main__":
-    # Test storage
-    print("Testing LanceDB storage...")
-    
-    # Store test documents
-    store_document(
-        "test1.txt",
-        "This document is about corporate mergers and acquisitions",
-        {"type": "test"}
-    )
-    
-    store_document(
-        "test2.txt", 
-        "This document discusses vector databases and embeddings",
-        {"type": "test"}
-    )
-    
-    print("✅ Stored 2 test documents")
-    print(f"✅ Total indexed: {get_indexed_count()}")
-    
-    # Test search
-    results = search_documents("database technology", limit=2)
-    
-    print(f"\n🔍 Search results for 'database technology':")
-    for i, result in enumerate(results, 1):
-        print(f"{i}. {result['file_path']}: {result['text'][:60]}...")
-        print(f"   Distance: {result['_distance']:.4f}\n")

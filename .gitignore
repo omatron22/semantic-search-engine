@@ -29,8 +29,6 @@ venv/
 
 # Build outputs
 dist/
-target/
-src-tauri/target/
 
 # Storage (don't commit databases)
 backend/storage/
@@ -42,6 +40,10 @@ backend/storage/
 # IDE
 .vscode/
 .idea/
+
+# Python cache
+__pycache__/
+*.pyc
 
 # Environment
 .env

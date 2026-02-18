@@ -4,7 +4,7 @@ import hashlib
 from datetime import datetime
 from pathlib import Path
 
-METADATA_FILE = "../storage/index_metadata.json"
+METADATA_FILE = os.path.join(os.path.dirname(__file__), "..", "storage", "index_metadata.json")
 
 def load_metadata():
     """Load index metadata from disk"""

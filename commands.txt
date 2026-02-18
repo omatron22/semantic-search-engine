@@ -1,0 +1,193 @@
+==========================================
+  SEMANTIC SEARCH ENGINE — COMMANDS GUIDE
+==========================================
+
+------------------------------------------
+  ARCHITECTURE
+------------------------------------------
+
+  FastAPI (Python :3002)  — ML model, indexing, search, parsing
+  Express (Node.js :3001) — API gateway, SSE streaming, file crawling
+  React SPA (Vite :5173)  — Web frontend
+
+  The Python server loads the SentenceTransformer model ONCE at startup.
+  All indexing/search operations hit it via HTTP (no subprocess spawning).
+
+------------------------------------------
+  STARTUP
+------------------------------------------
+
+  OPTION 1: Development (all 3 services + Vite dev server)
+
+    cd tauri-app
+    npm start
+    → Open http://localhost:5173
+
+  OPTION 2: Production (backends + Express serves built app)
+
+    cd tauri-app
+    npm run build
+    npm run serve
+    → Open http://localhost:3001
+
+  OPTION 3: Manual / development (run each in a separate terminal)
+
+    Terminal 1 — Python API:
+      cd tauri-app
+      venv/bin/python backend/python/api_server.py
+
+    Terminal 2 — Node.js server (wait for Python to finish loading):
+      cd tauri-app
+      node backend/node/server.js
+
+    Terminal 3 — Vite dev server:
+      cd tauri-app
+      npm run dev
+
+  OPTION 4: Backend only (API-only, no frontend)
+
+    Terminal 1:  venv/bin/python backend/python/api_server.py
+    Terminal 2:  node backend/node/server.js
+
+------------------------------------------
+  VERIFY IT'S RUNNING
+------------------------------------------
+
+  curl http://127.0.0.1:3002/health     # Python API
+  curl http://127.0.0.1:3001/health     # Node.js server
+  http://localhost:5173                  # Dev frontend (Vite)
+  http://localhost:3001                  # Production frontend (Express)
+
+------------------------------------------
+  SUPPORTED FILE TYPES
+------------------------------------------
+
+  Plain text (read directly by Node):
+    .txt  .md  .rst  .tex  .rtf  .log
+
+  Code files (read directly by Node):
+    .py  .js  .ts  .jsx  .tsx  .java  .c  .cpp  .h  .go  .rs  .rb
+    .php  .swift  .kt  .sh  .bash  .zsh  .sql  .r  .m
+    .css  .scss  .less
+
+  Config files (read directly by Node):
+    .ini  .toml  .cfg  .conf  .env  .gitignore
+
+  Parsed by Python:
+    .pdf   — PyMuPDF
+    .docx  — python-docx
+    .csv   — Python csv module
+    .json  — flattened to key-value text
+    .html / .htm  — lxml (strip tags)
+    .xml   — lxml (strip tags)
+    .yaml / .yml  — PyYAML (flatten to key-value text)
+    .xlsx  — openpyxl (all sheets/rows)
+    .pptx  — python-pptx (all slides)
+
+  Files with other extensions are crawled but SKIPPED during indexing.
+
+------------------------------------------
+  API ENDPOINTS (Node.js :3001)
+------------------------------------------
+
+  GET  /health                    Health check
+  GET  /api/engine/status         Check if reindex is needed
+  POST /api/engine/upgrade-complete  Mark engine upgrade done
+  GET  /api/ollama/status         Check if Ollama is running
+  GET  /api/indexes               List all indexed folders
+  DELETE /api/indexes/:id         Delete an index
+
+  POST /api/crawl                 Crawl a directory
+    Body: { "folderPath": "/path/to/folder" }
+
+  POST /api/index                 Index a folder (SSE streaming)
+    Body: { "folderPath": "/path/to/folder", "isReindex": false }
+
+  POST /api/search                Search indexed documents
+    Body: { "query": "your search", "limit": 10 }
+    Optional: "reranker": true, "expansion": true, "hybrid": true
+
+  POST /api/connectors            Add a connector
+    Body: { "type": "gmail", "credentials": {...}, "label": "Work Email", "sync_interval": 30 }
+
+  GET  /api/connectors             List all connectors with status
+  GET  /api/connectors/types       List available connector types
+  DELETE /api/connectors/:id       Remove connector + cleanup data
+  POST /api/connectors/:id/sync    Trigger manual sync (SSE streaming)
+  GET  /api/connectors/:id/status  Get connector status
+
+------------------------------------------
+  EXAMPLE: INDEX + SEARCH VIA CURL
+------------------------------------------
+
+  # Index a folder (SSE stream output):
+  curl -N -X POST http://localhost:3001/api/index \
+    -H "Content-Type: application/json" \
+    -d '{"folderPath": "/path/to/your/documents"}'
+
+  # Search:
+  curl -X POST http://localhost:3001/api/search \
+    -H "Content-Type: application/json" \
+    -d '{"query": "meeting notes from January", "limit": 5}'
+
+  # Search with all features enabled:
+  curl -X POST http://localhost:3001/api/search \
+    -H "Content-Type: application/json" \
+    -d '{"query": "budget report", "limit": 10, "reranker": true, "expansion": true, "hybrid": true}'
+
+------------------------------------------
+  EXAMPLE: CONNECTORS VIA CURL
+------------------------------------------
+
+  # List available connector types:
+  curl http://localhost:3001/api/connectors/types
+
+  # Add a Gmail connector (use App Password for Gmail):
+  curl -X POST http://localhost:3001/api/connectors \
+    -H "Content-Type: application/json" \
+    -d '{"type": "gmail", "credentials": {"imap_server": "imap.gmail.com", "email": "you@gmail.com", "password": "your-app-password"}, "label": "My Gmail", "sync_interval": 30}'
+
+  # List configured connectors:
+  curl http://localhost:3001/api/connectors
+
+  # Trigger manual sync (SSE stream):
+  curl -N -X POST http://localhost:3001/api/connectors/<id>/sync
+
+  # Delete a connector:
+  curl -X DELETE http://localhost:3001/api/connectors/<id>
+
+------------------------------------------
+  OPTIONAL: OLLAMA (for query expansion)
+------------------------------------------
+
+  Query expansion uses a local LLM via Ollama to rephrase vague
+  queries into multiple specific searches. It's optional — everything
+  works without it.
+
+  Install: https://ollama.com
+  Then:    ollama pull llama3.2:3b
+
+------------------------------------------
+  SHUTDOWN
+------------------------------------------
+
+  If started with `npm start`:
+    Ctrl+C in the terminal (kills all 3 services)
+
+  If started manually:
+    Ctrl+C in each terminal
+
+------------------------------------------
+  TROUBLESHOOTING
+------------------------------------------
+
+  "Port already in use":
+    lsof -ti:3002 | xargs kill    # kill stuck Python server
+    lsof -ti:3001 | xargs kill    # kill stuck Node server
+
+  Python API won't start:
+    cd tauri-app
+    venv/bin/python -c "from sentence_transformers import SentenceTransformer; print('OK')"
+
+  Node server says "Python API did not start in time":
+    Make sure the Python server is running first (it needs ~5s to load the model)

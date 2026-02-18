@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useNavigate } from "react-router-dom";
 import './IndexPage.css';
 
@@ -28,9 +27,11 @@ export function IndexPage() {
   const [progress, setProgress] = useState<ProgressData>({ current: 0, total: 0, currentFile: "", eta: 0 });
   const [indexedFolders, setIndexedFolders] = useState<IndexedFolder[]>([]);
   const [loadingIndexes, setLoadingIndexes] = useState(true);
+  const [needsReindex, setNeedsReindex] = useState(false);
 
   useEffect(() => {
     loadIndexedFolders();
+    checkEngineStatus();
   }, []);
 
   const loadIndexedFolders = async () => {
@@ -45,20 +46,13 @@ export function IndexPage() {
     }
   };
 
-  const pickFolder = async () => {
+  const checkEngineStatus = async () => {
     try {
-      const selected = await openDialog({
-        directory: true,
-        multiple: false,
-        title: "Select folder to index"
-      });
-      
-      if (selected && typeof selected === 'string') {
-        setSelectedFolder(selected);
-        setStatus(`Selected folder`);
-      }
+      const response = await fetch(`${API_BASE}/api/engine/status`);
+      const data = await response.json();
+      setNeedsReindex(data.needsReindex);
     } catch (error) {
-      setStatus("Failed to select folder");
+      // Server not running yet
     }
   };
 
@@ -110,6 +104,7 @@ export function IndexPage() {
             } else if (data.type === 'complete') {
               setStatus(data.message);
               setIndexing(false);
+              setNeedsReindex(false);
               await loadIndexedFolders();
               if (!isReindex) {
                 setTimeout(() => navigate('/search'), 2000);
@@ -178,20 +173,33 @@ export function IndexPage() {
           </p>
         </div>
 
+        {needsReindex && indexedFolders.length > 0 && (
+          <div className="reindex-banner">
+            Search engine upgraded. Please re-index your folders for improved search quality.
+          </div>
+        )}
+
         {/* Add New Folder Section */}
         <div className="add-folder-section">
           <h2>Add folder to index</h2>
           
-          {selectedFolder ? (
-            <div className="folder-selected">
-              <div className="folder-label">Selected</div>
-              <div className="folder-path">{selectedFolder}</div>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <p>No folder selected</p>
-            </div>
-          )}
+          <div className="folder-input-group">
+            <input
+              type="text"
+              className="folder-input"
+              value={selectedFolder}
+              onChange={(e) => setSelectedFolder(e.target.value)}
+              placeholder="/path/to/documents"
+              disabled={indexing}
+            />
+            <button
+              onClick={() => indexFolder()}
+              disabled={!selectedFolder.trim() || indexing}
+              className="btn btn-primary"
+            >
+              {indexing ? "Indexing..." : "Start indexing"}
+            </button>
+          </div>
 
           {indexing && progress.total > 0 && (
             <div className="progress-container">
@@ -215,23 +223,6 @@ export function IndexPage() {
               )}
             </div>
           )}
-
-          <div className="action-buttons">
-            <button 
-              onClick={pickFolder} 
-              className="btn btn-secondary"
-              disabled={indexing}
-            >
-              {selectedFolder ? 'Change folder' : 'Select folder'}
-            </button>
-            <button 
-              onClick={() => indexFolder()}
-              disabled={!selectedFolder || indexing}
-              className="btn btn-primary"
-            >
-              {indexing ? "Indexing..." : "Start indexing"}
-            </button>
-          </div>
 
           {status && (
             <div className={`status-message ${indexing ? 'loading' : ''}`}>

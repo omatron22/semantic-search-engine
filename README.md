@@ -1,7 +1,17 @@
-# Tauri + React + Typescript
+# Coffee
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+A privacy-first semantic search engine that lets you search across all your information — local files, emails, cloud storage, and chat history — using natural language. Everything stays on your machine.
 
-## Recommended IDE Setup
+## Tech Stack
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- **Frontend:** React + TypeScript (Vite)
+- **Backend:** FastAPI (Python) + Express (Node.js)
+- **Search:** SentenceTransformer embeddings + LanceDB
+- **Optional:** Ollama for local LLM query expansion
+
+## Getting Started
+
+```bash
+npm install
+npm run start
+```
