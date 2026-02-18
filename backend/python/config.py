@@ -1,5 +1,5 @@
 """
-Centralized configuration for the semantic search engine.
+Centralized configuration for Coffee search engine.
 Reads/writes storage/engine_config.json.
 """
 

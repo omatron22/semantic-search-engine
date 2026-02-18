@@ -1,6 +1,6 @@
 # Coffee
 
-A privacy-first semantic search engine that lets you search across all your information — local files, emails, cloud storage, and chat history — using natural language. Everything stays on your machine.
+A privacy-first search engine that lets you search across all your information — local files, emails, cloud storage, and chat history — using natural language. Everything stays on your machine.
 
 ## Tech Stack
 

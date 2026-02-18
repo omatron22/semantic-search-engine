@@ -1,5 +1,5 @@
 """
-FastAPI server — persistent Python backend for the semantic search engine.
+FastAPI server — persistent Python backend for Coffee.
 Loads the SentenceTransformer model once at startup, serves all Python
 operations over HTTP on 127.0.0.1:3002.
 """

@@ -1,5 +1,5 @@
 ==========================================
-  SEMANTIC SEARCH ENGINE — COMMANDS GUIDE
+  COFFEE — COMMANDS GUIDE
 ==========================================
 
 ------------------------------------------
@@ -19,13 +19,13 @@
 
   OPTION 1: Development (all 3 services + Vite dev server)
 
-    cd tauri-app
+    cd coffee
     npm start
     → Open http://localhost:5173
 
   OPTION 2: Production (backends + Express serves built app)
 
-    cd tauri-app
+    cd coffee
     npm run build
     npm run serve
     → Open http://localhost:3001
@@ -33,15 +33,15 @@
   OPTION 3: Manual / development (run each in a separate terminal)
 
     Terminal 1 — Python API:
-      cd tauri-app
+      cd coffee
       venv/bin/python backend/python/api_server.py
 
     Terminal 2 — Node.js server (wait for Python to finish loading):
-      cd tauri-app
+      cd coffee
       node backend/node/server.js
 
     Terminal 3 — Vite dev server:
-      cd tauri-app
+      cd coffee
       npm run dev
 
   OPTION 4: Backend only (API-only, no frontend)
@@ -186,7 +186,7 @@
     lsof -ti:3001 | xargs kill    # kill stuck Node server
 
   Python API won't start:
-    cd tauri-app
+    cd coffee
     venv/bin/python -c "from sentence_transformers import SentenceTransformer; print('OK')"
 
   Node server says "Python API did not start in time":
